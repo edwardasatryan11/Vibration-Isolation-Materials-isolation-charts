@@ -1,0 +1,343 @@
+import { useState } from "react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+const materials = ["Cardboard","Tin","Steel","Concrete","Wood","Hard rubber","Leather","Silic
+const distances = [5, 10, 15, 20];
+const summaryData = {
+5: { Cardboard:2.815, Tin:2.639, Steel:2.559, Concrete:2.417, Wood:2.236, "Hard rubber":1.
+10: { Cardboard:2.147, Tin:2.025, Steel:1.976, Concrete:1.851, Wood:1.695, "Hard rubber":1.
+15: { Cardboard:1.618, Tin:1.535, Steel:1.488, Concrete:1.387, Wood:1.264, "Hard rubber":1.
+20: { Cardboard:1.200, Tin:1.150, Steel:1.100, Concrete:1.029, Wood:0.929, "Hard rubber":0.
+};
+const isolationData = {
+5: { Cardboard:0.0, Tin:6.3, Steel:9.1, Concrete:14.1, Wood:20.6, "Hard rubber":33.3, Leat
+10: { Cardboard:0.0, Tin:5.7, Steel:8.0, Concrete:13.8, Wood:21.1, "Hard rubber":34.2, Leat
+15: { Cardboard:0.0, Tin:5.1, Steel:8.0, Concrete:14.3, Wood:21.9, "Hard rubber":35.0, Leat
+20: { Cardboard:0.0, Tin:4.2, Steel:8.3, Concrete:14.3, Wood:22.6, "Hard rubber":36.1, Leat
+};
+const materialColors = {
+Cardboard: "#e63946", Tin: "#e07b3d", Steel: "#e9c46a", Concrete: "#8d8d8d",
+Wood: "#a3722a", "Hard rubber": "#2a9d8f", Leather: "#6a4c93",
+Silicone: "#3a86ff", Cotton: "#06d6a0", Sponge: "#ff70a6", Foam: "#b5838d"
+};
+const stiffnessGroups = {
+"Very Stiff": ["Cardboard","Tin","Steel","Concrete","Wood"],
+"Very Stiff / Elastic": ["Hard rubber"],
+"Medium": ["Leather","Silicone"],
+"Soft": ["Cotton","Sponge"],
+"Very Soft": ["Foam"],
+};
+// Build chart data
+const trendData = materials.map(mat => ({
+material: mat,
+"5 cm": summaryData[5][mat],
+"10 cm": summaryData[10][mat],
+"15 cm": summaryData[15][mat],
+"20 cm": summaryData[20][mat],
+}));
+const attenByDistData = distances.map(d => {
+const row = { distance: `${d} cm` };
+materials.forEach(m => { row[m] = summaryData[d][m]; });
+return row;
+});
+const isolationByDistData = distances.map(d => {
+const row = { distance: `${d} cm` };
+materials.forEach(m => { row[m] = isolationData[d][m]; });
+return row;
+});
+const perMaterialTrend = materials.map(m => ({
+material: m,
+data: distances.map(d => ({ distance: d, rms: summaryData[d][m], isolation: isolationData[d
+}));
+const CustomTooltip = ({ active, payload, label }) => {
+if (active && payload && payload.length) {
+return (
+<div style={{ background:"#0d0d1a", border:"1px solid #2a2a45", borderRadius:8, padding
+<p style={{ color:"#a0a0c0", marginBottom:6, fontFamily:"'Space Mono', monospace" }}>
+{payload.map((p, i) => (
+<div key={i} style={{ display:"flex", alignItems:"center", gap:6, marginBottom:2 }}
+<div style={{ width:8, height:8, borderRadius:"50%", background:p.color }} <span style={{ color:"#ccc", fontFamily:"'Space Mono', monospace" }}>{p.name}: <s
+</div>
+/>
+))}
+</div>
+);
+}
+return null;
+};
+export default function App() {
+const [view, setView] = useState("overview"); // overview | perdistance | permaterial
+const [selectedDistance, setSelectedDistance] = useState(5);
+const [selectedMaterial, setSelectedMaterial] = useState("Foam");
+const [metric, setMetric] = useState("rms"); // rms | isolation
+const tabs = [
+{ id:"overview", label:"Overview" },
+{ id:"perdistance", label:"By Distance" },
+{ id:"permaterial", label:"By Material" },
+];
+return (
+<div style={{ minHeight:"100vh", background:"#07071a", color:"#e0e0f0", fontFamily:"'DM S
+<style>{`
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&fa
+* { box-sizing: border-box; margin: 0; padding: 0; }
+::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #0d0d1a;
+button { cursor: pointer; transition: all 0.2s; }
+`}</style>
+{/* Header */}
+<div style={{ background:"linear-gradient(135deg, #0d0d2e 0%, #12123a 100%)", borderBot
+<div style={{ maxWidth:1200, margin:"0 auto" }}>
+<div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-betwee
+<div>
+<p style={{ fontSize:11, letterSpacing:3, color:"#5555aa", fontFamily:"'Space M
+<h1 style={{ fontSize:28, fontWeight:600, letterSpacing:-0.5, lineHeight:1.1 }}
+Material Vibration Attenuation
+</h1>
+<p style={{ color:"#6060a0", fontSize:13, marginTop:6 }}>RMS signal amplitude a
+</div>
+<div style={{ display:"flex", gap:8, background:"#0d0d1a", borderRadius:10, paddi
+{tabs.map(t => (
+<button key={t.id} onClick={() => setView(t.id)}
+style={{ padding:"7px 16px", borderRadius:7, border:"none", fontSize:12, fo
+background: view === t.id ? "#3030a0" : "transparent",
+color: view === t.id ? "#fff" : "#5555a0" }}>
+{t.label}
+</button>
+))}
+</div>
+</div>
+{/* Legend */}
+<div style={{ display:"flex", flexWrap:"wrap", gap:10, marginTop:18 }}>
+{Object.entries(stiffnessGroups).map(([group, mats]) => (
+<div key={group} style={{ display:"flex", alignItems:"center", gap:6, backgroun
+<span style={{ fontSize:10, color:"#4444aa", fontFamily:"'Space Mono',monospa
+{mats.map(m => (
+<div key={m} style={{ display:"flex", alignItems:"center", gap:3 }}>
+<div style={{ width:8, height:8, borderRadius:"50%", background:materialC
+<span style={{ fontSize:10, color:"#9090c0" }}>{m}</span>
+</div>
+))}
+</div>
+))}
+</div>
+</div>
+</div>
+<div style={{ maxWidth:1200, margin:"0 auto", padding:"28px 24px 0" }}>
+margin
+{/* OVERVIEW VIEW */}
+{view === "overview" && (
+<div>
+{/* KPI strip */}
+<div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:14, {distances.map(d => (
+<div key={d} style={{ background:"#0d0d22", border:"1px solid #1e1e3a", borde
+<p style={{ fontSize:10, letterSpacing:2, color:"#4444aa", fontFamily:"'Spa
+<p style={{ fontSize:22, fontWeight:700, color:"#06d6a0", fontFamily:"'Spac
+{isolationData[d]["Foam"].toFixed(1)}%
+</p>
+</div>
+<p style={{ fontSize:11, color:"#6060a0", marginTop:2 }}>Foam isolation</p>
+))}
+</div>
+{/* Main: Attenuation across materials, all distances */}
+<div style={{ background:"#0d0d22", border:"1px solid #1e1e3a", borderRadius:14,
+<h2 style={{ fontSize:15, fontWeight:600, marginBottom:4 }}>Average RMS Amplitu
+<p style={{ fontSize:12, color:"#5555a0", marginBottom:20 }}>Lower RMS = better
+<ResponsiveContainer width="100%" height={320}>
+<LineChart data={trendData} margin={{ left:10, right:20, top:5, bottom:60 }}>
+<CartesianGrid strokeDasharray="3 3" stroke="#1a1a30" />
+<XAxis dataKey="material" tick={{ fill:"#7070b0", fontSize:11, fontFamily:"
+<YAxis tick={{ fill:"#7070b0", fontSize:11 }} label={{ value:"RMS (V)", ang
+<Tooltip content={<CustomTooltip />} />
+<Legend wrapperStyle={{ paddingTop:50, fontSize:12, color:"#9090c0" }} />
+{distances.map((d,i) => (
+<Line key={d} type="monotone" dataKey={`${d} cm`} stroke={["#3a86ff","#06
+))}
+</LineChart>
+</ResponsiveContainer>
+</div>
+{/* Isolation % bar chart */}
+<div style={{ background:"#0d0d22", border:"1px solid #1e1e3a", borderRadius:14,
+<h2 style={{ fontSize:15, fontWeight:600, marginBottom:4 }}>Isolation Efficienc
+<p style={{ fontSize:12, color:"#5555a0", marginBottom:20 }}>Higher = better is
+<ResponsiveContainer width="100%" height={300}>
+<BarChart data={materials.filter(m => m !== "Cardboard").map(m => ({
+material: m,
+"5 cm": isolationData[5][m],
+"10 cm": isolationData[10][m],
+"15 cm": isolationData[15][m],
+"20 cm": isolationData[20][m],
+}))} margin={{ left:10, right:20, top:5, bottom:60 }}>
+<CartesianGrid strokeDasharray="3 3" stroke="#1a1a30" />
+<XAxis dataKey="material" tick={{ fill:"#7070b0", fontSize:11 }} angle={-35
+<YAxis tick={{ fill:"#7070b0", fontSize:11 }} unit="%" />
+<Tooltip content={<CustomTooltip />} />
+<Legend wrapperStyle={{ paddingTop:50, fontSize:12, color:"#9090c0" }} />
+{distances.map((d,i) => (
+<Bar key={d} dataKey={`${d} cm`} fill={["#3a86ff","#06d6a0","#ff70a6","#e
+))}
+</BarChart>
+</ResponsiveContainer>
+</div>
+</div>
+)}
+{/* BY DISTANCE VIEW */}
+{view === "perdistance" && (
+<div>
+<div style={{ display:"flex", gap:8, marginBottom:24, alignItems:"center", flexWr
+<span style={{ fontSize:12, color:"#5555a0", fontFamily:"'Space Mono',monospace
+{distances.map(d => (
+<button key={d} onClick={() => setSelectedDistance(d)}
+style={{ padding:"7px 18px", borderRadius:8, border:"1px solid", fontSize:1
+borderColor: selectedDistance === d ? "#3a86ff" : "#1e1e40",
+background: selectedDistance === d ? "#0d1a3a" : "#0d0d1a",
+color: selectedDistance === d ? "#3a86ff" : "#5555a0" }}>
+{d} cm
+</button>
+))}
+<div style={{ marginLeft:"auto", display:"flex", gap:6 }}>
+{["rms","isolation"].map(m => (
+<button key={m} onClick={() => setMetric(m)}
+style={{ padding:"7px 16px", borderRadius:8, border:"1px solid", fontSize
+borderColor: metric === m ? "#06d6a0" : "#1e1e40",
+background: metric === m ? "#051f1a" : "#0d0d1a",
+color: metric === m ? "#06d6a0" : "#5555a0" }}>
+{m === "rms" ? "RMS" : "Isolation %"}
+</button>
+))}
+</div>
+</div>
+{/* Bar per material at selected distance */}
+<div style={{ background:"#0d0d22", border:"1px solid #1e1e3a", borderRadius:14,
+<h2 style={{ fontSize:15, fontWeight:600, marginBottom:4 }}>
+{metric === "rms" ? "RMS Amplitude" : "Isolation Efficiency"} @ {selectedDist
+</h2>
+<p style={{ fontSize:12, color:"#5555a0", marginBottom:20 }}>
+{metric === "rms" ? "Average RMS signal for each material at this distance" :
+</p>
+<ResponsiveContainer width="100%" height={340}>
+<BarChart
+data={materials.map(m => ({
+material: m,
+value: metric === "rms" ? summaryData[selectedDistance][m] : isolationDat
+fill: materialColors[m]
+}))}
+margin={{ left:10, right:20, top:5, bottom:60 }}>
+<CartesianGrid strokeDasharray="3 3" stroke="#1a1a30" />
+<XAxis dataKey="material" tick={{ fill:"#7070b0", fontSize:11 }} angle={-35
+<YAxis tick={{ fill:"#7070b0", fontSize:11 }} unit={metric === "isolation"
+<Tooltip content={<CustomTooltip />} />
+<Bar dataKey="value" radius={[4,4,0,0]} name={metric === "rms" ? "RMS (V)"
+{materials.map((m) => (
+<rect key={m} fill={materialColors[m]} />
+))}
+</Bar>
+</BarChart>
+</ResponsiveContainer>
+</div>
+{/* Material ranking table */}
+<div style={{ background:"#0d0d22", border:"1px solid #1e1e3a", borderRadius:14,
+<h2 style={{ fontSize:15, fontWeight:600, marginBottom:16 }}>Ranked Performance
+<div style={{ display:"grid", gap:8 }}>
+{[...materials]
+.sort((a,b) => isolationData[selectedDistance][b] - isolationData[selectedD
+.map((m, i) => {
+const iso = isolationData[selectedDistance][m];
+const rms = summaryData[selectedDistance][m];
+return (
+<div key={m} style={{ display:"flex", alignItems:"center", gap:14, padd
+<span style={{ width:22, textAlign:"center", fontSize:11, fontFamily:
+<div style={{ width:10, height:10, borderRadius:"50%", background:mat
+<span style={{ flex:1, fontSize:13, fontWeight:500 }}>{m}</span>
+<div style={{ flex:3, background:"#12123a", borderRadius:4, height:6,
+<div style={{ width:`${iso}%`, height:"100%", background:materialCo
+</div>
+<span style={{ width:50, textAlign:"right", fontFamily:"'Space <span style={{ width:60, textAlign:"right", fontFamily:"'Space </div>
+Mono',
+Mono',
+);
+})}
+</div>
+</div>
+</div>
+)}
+{/* BY MATERIAL VIEW */}
+{view === "permaterial" && (
+<div>
+<div style={{ display:"flex", gap:8, marginBottom:24, alignItems:"center", flexWr
+<span style={{ fontSize:12, color:"#5555a0", fontFamily:"'Space Mono',monospace
+{materials.map(m => (
+<button key={m} onClick={() => setSelectedMaterial(m)}
+style={{ padding:"6px 14px", borderRadius:8, border:"1px solid", fontSize:1
+borderColor: selectedMaterial === m ? materialColors[m] : "#1e1e40",
+background: selectedMaterial === m ? materialColors[m] + "22" : "#0d0d1a"
+color: selectedMaterial === m ? materialColors[m] : "#5555a0" }}>
+{m}
+</button>
+))}
+</div>
+{/* Individual material: RMS vs distance */}
+<div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:18, marginBottom
+<div style={{ background:"#0d0d22", border:"1px solid #1e1e3a", borderRadius:14
+<h2 style={{ fontSize:15, fontWeight:600, marginBottom:4 }}>RMS Amplitude vs
+<p style={{ fontSize:12, color:"#5555a0", marginBottom:16 }}>{selectedMateria
+<ResponsiveContainer width="100%" height={240}>
+<LineChart data={perMaterialTrend.find(p => p.material === selectedMaterial
+margin={{ left:0, right:20, top:5, bottom:0 }}>
+<CartesianGrid strokeDasharray="3 3" stroke="#1a1a30" />
+<XAxis dataKey="distance" unit=" cm" tick={{ fill:"#7070b0", fontSize:11
+<YAxis tick={{ fill:"#7070b0", fontSize:11 }} label={{ value:"RMS (V)", a
+<Tooltip content={<CustomTooltip />} />
+<Line type="monotone" dataKey="rms" name="RMS" stroke={materialColors[sel
+</LineChart>
+</ResponsiveContainer>
+</div>
+<div style={{ background:"#0d0d22", border:"1px solid #1e1e3a", borderRadius:14
+<h2 style={{ fontSize:15, fontWeight:600, marginBottom:4 }}>Isolation Efficie
+<p style={{ fontSize:12, color:"#5555a0", marginBottom:16 }}>{selectedMateria
+<ResponsiveContainer width="100%" height={240}>
+<LineChart data={perMaterialTrend.find(p => p.material === selectedMaterial
+margin={{ left:0, right:20, top:5, bottom:0 }}>
+<CartesianGrid strokeDasharray="3 3" stroke="#1a1a30" />
+<XAxis dataKey="distance" unit=" cm" tick={{ fill:"#7070b0", fontSize:11
+<YAxis tick={{ fill:"#7070b0", fontSize:11 }} unit="%" />
+<Tooltip content={<CustomTooltip />} />
+<Line type="monotone" dataKey="isolation" name="Isolation %" stroke="#06d
+</LineChart>
+</ResponsiveContainer>
+</div>
+</div>
+{/* All materials in small multiples */}
+<div style={{ background:"#0d0d22", border:"1px solid #1e1e3a", borderRadius:14,
+<h2 style={{ fontSize:15, fontWeight:600, marginBottom:4 }}>All Materials — RMS
+<p style={{ fontSize:12, color:"#5555a0", marginBottom:20 }}>Each line shows ho
+<div style={{ display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:14 }}>
+{materials.map(m => {
+const data = perMaterialTrend.find(p => p.material === m).data;
+const isSelected = m === selectedMaterial;
+return (
+<div key={m} onClick={() => setSelectedMaterial(m)}
+style={{ background: isSelected ? materialColors[m]+"15" : "#0a0a1a", b
+<div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:
+<div style={{ width:8, height:8, borderRadius:"50%", background:mater
+<span style={{ fontSize:11, fontWeight:500, color: isSelected ? mater
+</div>
+<ResponsiveContainer width="100%" height={80}>
+<LineChart data={data} margin={{ left:0, right:4, top:2, bottom:0 }}>
+<Line type="monotone" dataKey="rms" stroke={materialColors[m]} stro
+<XAxis dataKey="distance" hide />
+<YAxis hide />
+</LineChart>
+</ResponsiveContainer>
+<div style={{ display:"flex", justifyContent:"space-between", marginTop
+<span style={{ fontSize:9, fontFamily:"'Space Mono',monospace", color
+<span style={{ fontSize:9, fontFamily:"'Space Mono',monospace", color
+</div>
+</div>
+);
+})}
+</div>
+</div>
+</div>
+)}
+</div>
+</div>
+);
+}
